@@ -92,9 +92,10 @@ export default async function HomePage() {
       <HowItWorks />
 
       {/* Games teaser */}
+      {games.length > 0 && (
       <section className="container-x pt-24" aria-label="Featured games">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <SectionHeading title="Featured Games" subtitle="Team missions, adventures and mixed-reality challenges from leading VR arena studios." className="mb-0" />
+          <SectionHeading title="Featured Games" subtitle="Team missions, adventures and mixed-reality challenges in our free-roaming VR arena." className="mb-0" />
           <Link href="/games" className="btn btn-cyan btn-sm mb-2">
             View all games <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
@@ -107,13 +108,9 @@ export default async function HomePage() {
               </Reveal>
             ))}
           </ul>
-        ) : (
-          <Reveal className="card-neon mt-10 flex flex-col items-center gap-3 p-10 text-center">
-            <p className="font-display text-2xl font-bold uppercase">Game lineup coming soon</p>
-            <p className="max-w-lg text-muted">We are finalizing our catalog of free-roaming VR and MR games. Explore the games page for details on our game partners.</p>
-          </Reveal>
-        )}
+        ) : null}
       </section>
+      )}
 
       <PerfectFor />
 

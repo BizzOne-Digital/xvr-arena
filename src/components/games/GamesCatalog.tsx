@@ -19,7 +19,7 @@ export function GamesCatalog({ games }: { games: GameDTO[] }) {
     return games.filter((g) => {
       if (filter !== "All Games" && !g.categories.includes(filter)) return false;
       if (!q) return true;
-      return [g.name, g.description, g.provider, ...g.categories].some((v) => v?.toLowerCase().includes(q));
+      return [g.name, g.description, ...g.categories].some((v) => v?.toLowerCase().includes(q));
     });
   }, [games, filter, query]);
 

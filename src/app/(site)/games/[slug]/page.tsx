@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, Clock, DollarSign, ExternalLink, Info, ShieldCheck, Users } from "lucide-react";
+import { CalendarDays, Clock, DollarSign, Info, ShieldCheck, Users } from "lucide-react";
 import { SmartImage } from "@/components/ui/SmartImage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Reveal } from "@/components/ui/Reveal";
@@ -74,16 +74,10 @@ export default async function GameDetail({ params }: { params: Promise<{ slug: s
               ))}
             </div>
             <h1 className="section-title mt-4 max-w-4xl text-5xl sm:text-6xl lg:text-7xl">{game.name}</h1>
-            {game.provider && <p className="mt-3 text-muted">by {game.provider}</p>}
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href={bookHref} className="btn btn-red">
                 <CalendarDays className="size-5" aria-hidden="true" /> Book This Game
               </Link>
-              {game.providerUrl && (
-                <a href={game.providerUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
-                  Provider info <ExternalLink className="size-4" aria-hidden="true" />
-                </a>
-              )}
             </div>
           </Reveal>
         </div>

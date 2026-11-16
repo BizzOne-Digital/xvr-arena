@@ -41,7 +41,6 @@ export function GameCard({ game }: { game: GameDTO }) {
         </div>
       </div>
       <div className="flex flex-1 flex-col p-5">
-        {game.provider && <p className="text-xs font-semibold uppercase tracking-widest text-muted">{game.provider}</p>}
         <h3 className="mt-1 font-display text-2xl font-bold uppercase leading-tight">
           <Link href={`/games/${game.slug}`} className="after:absolute after:inset-0 hover:text-cyan focus-visible:outline-none">
             {game.name}
