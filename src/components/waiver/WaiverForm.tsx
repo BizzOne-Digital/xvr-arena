@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { CheckCircle2, Download, Loader2, PenLine } from "lucide-react";
 import { SignaturePad, type SignaturePadHandle } from "./SignaturePad";
-import { FormAlert, TextField } from "@/components/forms/Field";
+import { FormAlert, TextArea, TextField } from "@/components/forms/Field";
 import { postJson, type FieldErrors } from "@/components/forms/useSubmit";
 
 export type WaiverTemplateDTO = {
@@ -53,6 +53,8 @@ export function WaiverForm({
   const [done, setDone] = useState<Result | null>(null);
   const [formKey, setFormKey] = useState(0);
 
+  const [firstDefault, ...rest] = (defaults?.name ?? "").trim().split(/\s+/);
+  const lastDefault = rest.join(" ");
   const age = ageFrom(dob);
   const isMinor = age != null ? age < template.minorAgeThreshold : minorManual;
 
@@ -69,10 +71,15 @@ export function WaiverForm({
       const res = await postJson<Result>("/api/waiver/sign", {
         bookingId: bookingNumber,
         token,
-        participantName: f.participantName,
+        firstName: f.firstName,
+        lastName: f.lastName,
         participantDob: dob,
         email: f.email,
         phone: f.phone,
+        emergencyPhone: f.emergencyPhone,
+        address: { line1: f.addressLine1, city: f.city, province: f.province, postalCode: f.postalCode },
+        mailingList: f.mailingList === "on",
+        medicalNotes: f.medicalNotes,
         isMinor,
         guardian: isMinor ? { name: f.guardianName, relationship: f.guardianRelationship, email: f.guardianEmail, phone: f.guardianPhone } : undefined,
         acknowledgments: acks,
@@ -138,7 +145,8 @@ export function WaiverForm({
 
       <fieldset className="grid gap-4 sm:grid-cols-2">
         <legend className="mb-3 font-display text-lg font-bold uppercase">Participant</legend>
-        <TextField label="Participant full name" name="participantName" required defaultValue={defaults?.name} error={fieldErrors.participantName} />
+        <TextField label="First name" name="firstName" required autoComplete="given-name" defaultValue={firstDefault} error={fieldErrors.firstName} />
+        <TextField label="Last name" name="lastName" required autoComplete="family-name" defaultValue={lastDefault} error={fieldErrors.lastName} />
         <TextField
           label="Date of birth"
           name="participantDob"
@@ -149,8 +157,25 @@ export function WaiverForm({
           max={new Date().toISOString().slice(0, 10)}
           error={fieldErrors.participantDob}
         />
-        <TextField label="Email" name="email" type="email" required defaultValue={defaults?.email} error={fieldErrors.email} />
-        <TextField label="Phone" name="phone" type="tel" defaultValue={defaults?.phone} error={fieldErrors.phone} />
+        <TextField label="Phone number" name="phone" type="tel" required autoComplete="tel" defaultValue={defaults?.phone} error={fieldErrors.phone} />
+        <TextField label="Email address" name="email" type="email" required autoComplete="email" defaultValue={defaults?.email} error={fieldErrors.email} />
+        <TextField label="Emergency contact number" name="emergencyPhone" type="tel" required error={fieldErrors.emergencyPhone} />
+        <TextField label="Home address" name="addressLine1" required autoComplete="street-address" className="sm:col-span-2" error={fieldErrors.address} />
+        <TextField label="City" name="city" required autoComplete="address-level2" defaultValue="Winnipeg" />
+        <TextField label="Province" name="province" required autoComplete="address-level1" defaultValue="Manitoba" />
+        <TextField label="Postal code" name="postalCode" required autoComplete="postal-code" />
+        <TextArea
+          label="Medical conditions / allergies"
+          name="medicalNotes"
+          rows={2}
+          className="sm:col-span-2"
+          placeholder="Leave blank if none"
+          error={fieldErrors.medicalNotes}
+        />
+        <label className="flex items-center gap-3 text-sm sm:col-span-2">
+          <input type="checkbox" name="mailingList" className="size-5 accent-cyan" />
+          Yes, I&apos;d like to join the XVR mailing list for news and offers.
+        </label>
         {!template.requireDob && (
           <label className="flex items-center gap-3 text-sm sm:col-span-2">
             <input type="checkbox" checked={minorManual} onChange={(e) => setMinorManual(e.target.checked)} className="size-5 accent-cyan" />
@@ -166,7 +191,7 @@ export function WaiverForm({
             This participant is under {template.minorAgeThreshold}. A parent or legal guardian must complete and sign this waiver.
           </p>
           <TextField label="Guardian full name" name="guardianName" required error={fieldErrors["guardian"]} />
-          <TextField label="Relationship to participant" name="guardianRelationship" required placeholder="e.g. Parent" />
+          <TextField label="Relationship to participant (optional)" name="guardianRelationship" placeholder="e.g. Parent" />
           <TextField label="Guardian email" name="guardianEmail" type="email" />
           <TextField label="Guardian phone" name="guardianPhone" type="tel" />
         </fieldset>

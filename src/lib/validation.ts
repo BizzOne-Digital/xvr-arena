@@ -71,19 +71,35 @@ export const quoteSchema = holdSchema.pick({
   promoCode: true,
 });
 
+const shortText = (label: string, max = 120) => z.string().trim().min(1, `${label} is required`).max(max);
+
 export const waiverSignSchema = z
   .object({
     bookingId: z.string().max(40).optional(),
     token: z.string().max(100).optional(),
-    participantName: name,
+    firstName: shortText("First name", 60),
+    lastName: shortText("Last name", 60),
     participantDob: dateStr.optional().or(z.literal("")),
     email,
-    phone: phone.optional().or(z.literal("")),
+    phone,
+    emergencyPhone: phone,
+    address: z.object({
+      line1: shortText("Home address", 160),
+      city: shortText("City", 80),
+      province: shortText("Province", 80),
+      postalCode: z
+        .string()
+        .trim()
+        .max(12)
+        .regex(/^[A-Za-z0-9 -]{3,12}$/, "Please enter a valid postal code"),
+    }),
+    mailingList: z.boolean().default(false),
+    medicalNotes: z.string().trim().max(1000).optional(),
     isMinor: z.boolean(),
     guardian: z
       .object({
         name,
-        relationship: z.string().trim().min(2).max(60),
+        relationship: z.string().trim().max(60).optional().or(z.literal("")),
         email: email.optional().or(z.literal("")),
         phone: phone.optional().or(z.literal("")),
       })

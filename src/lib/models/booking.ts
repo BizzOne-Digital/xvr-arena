@@ -239,7 +239,13 @@ export interface ISignedWaiver {
   templateHash: string;
   acknowledgments: string[];
   participantName: string;
+  firstName?: string;
+  lastName?: string;
   participantDob?: string;
+  emergencyPhone?: string;
+  address?: { line1?: string; city?: string; province?: string; postalCode?: string };
+  mailingList?: boolean;
+  medicalNotes?: string;
   isMinor: boolean;
   email: string;
   phone?: string;
@@ -266,7 +272,13 @@ const SignedWaiverSchema = new S<ISignedWaiver>(
     templateHash: { type: String, required: true },
     acknowledgments: [String],
     participantName: { type: String, required: true },
+    firstName: String,
+    lastName: String,
     participantDob: String,
+    emergencyPhone: String,
+    address: { line1: String, city: String, province: String, postalCode: String },
+    mailingList: { type: Boolean, default: false },
+    medicalNotes: String,
     isMinor: { type: Boolean, default: false },
     email: { type: String, required: true, lowercase: true },
     phone: String,
@@ -283,6 +295,9 @@ const SignedWaiverSchema = new S<ISignedWaiver>(
   { timestamps: true },
 );
 SignedWaiverSchema.index({ participantName: "text", email: "text", bookingNumber: "text" });
+SignedWaiverSchema.index({ email: 1, signedAt: -1 });
+SignedWaiverSchema.index({ phone: 1 });
+SignedWaiverSchema.index({ lastName: 1, firstName: 1 });
 export const SignedWaiver = defineModel("SignedWaiver", SignedWaiverSchema);
 
 /* ------------------------------------ Payment ----------------------------------- */

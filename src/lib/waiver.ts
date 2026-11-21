@@ -32,6 +32,7 @@ export async function signWaiver(input: z.infer<typeof waiverSignSchema>, meta: 
   }
   if (template.requireDob && !input.participantDob) throw new HttpError(400, "Date of birth is required.");
 
+  const participantName = `${input.firstName} ${input.lastName}`.replace(/\s+/g, " ").trim();
   let isMinor = input.isMinor;
   if (input.participantDob) {
     const age = ageOn(input.participantDob);
@@ -54,14 +55,18 @@ export async function signWaiver(input: z.infer<typeof waiverSignSchema>, meta: 
 
   const signedAt = new Date();
   const templateHash = template.contentHash || sha256(template.body);
-  const signerName = isMinor ? input.guardian!.name : input.participantName;
+  const signerName = isMinor ? input.guardian!.name : participantName;
   const documentHash = sha256(
     JSON.stringify({
       templateVersion: template.version,
       templateHash,
-      participantName: input.participantName,
+      participantName,
       participantDob: input.participantDob,
       email: input.email,
+      phone: input.phone,
+      emergencyPhone: input.emergencyPhone,
+      address: input.address,
+      medicalNotes: input.medicalNotes,
       guardian: isMinor ? input.guardian : undefined,
       signerName,
       signedAt: signedAt.toISOString(),
@@ -75,7 +80,7 @@ export async function signWaiver(input: z.infer<typeof waiverSignSchema>, meta: 
   const participant = booking
     ? await Participant.create({
         booking: booking._id,
-        fullName: input.participantName,
+        fullName: participantName,
         dateOfBirth: input.participantDob || undefined,
         isMinor,
         email: input.email,
@@ -94,8 +99,14 @@ export async function signWaiver(input: z.infer<typeof waiverSignSchema>, meta: 
     templateBody: template.body,
     templateHash,
     acknowledgments: template.acknowledgments,
-    participantName: input.participantName,
+    participantName,
+    firstName: input.firstName,
+    lastName: input.lastName,
     participantDob: input.participantDob || undefined,
+    emergencyPhone: input.emergencyPhone,
+    address: input.address,
+    mailingList: input.mailingList,
+    medicalNotes: input.medicalNotes || undefined,
     isMinor,
     email: input.email,
     phone: input.phone || undefined,
@@ -115,7 +126,7 @@ export async function signWaiver(input: z.infer<typeof waiverSignSchema>, meta: 
   if (booking) refreshed = await refreshWaiverStatus(booking._id);
 
   const downloadUrl = `${siteUrl()}/api/waivers/${signed.waiverNumber}/pdf?t=${accessToken}`;
-  await sendWaiverCompleted(input.email, input.participantName, waiverNumber, downloadUrl);
+  await sendWaiverCompleted(input.email, participantName, waiverNumber, downloadUrl);
   if (refreshed?.waiverStatus === "complete") {
     await notifyAdmins("Waivers complete", "All waivers signed for booking", [
       ["Booking", refreshed.bookingNumber],
@@ -202,11 +213,15 @@ export async function renderWaiverPdf(w: ISignedWaiver) {
   write(`Name: ${w.participantName}`);
   if (w.participantDob) write(`Date of birth: ${w.participantDob}`);
   write(`Email: ${w.email}${w.phone ? `   Phone: ${w.phone}` : ""}`);
+  if (w.emergencyPhone) write(`Emergency contact number: ${w.emergencyPhone}`);
+  if (w.address?.line1) write(`Home address: ${[w.address.line1, w.address.city, w.address.province, w.address.postalCode].filter(Boolean).join(", ")}`);
+  write(`Medical conditions / allergies: ${w.medicalNotes || "None reported"}`);
+  write(`Mailing list: ${w.mailingList ? "Yes" : "No"}`);
   write(`Minor: ${w.isMinor ? "Yes" : "No"}`);
   if (w.isMinor && w.guardian) {
     y -= 4;
     write("Parent / legal guardian", { f: bold, s: 11 });
-    write(`Name: ${w.guardian.name}   Relationship: ${w.guardian.relationship}`);
+    write(`Name: ${w.guardian.name}${w.guardian.relationship ? `   Relationship: ${w.guardian.relationship}` : ""}`);
     if (w.guardian.email || w.guardian.phone) write(`Contact: ${[w.guardian.email, w.guardian.phone].filter(Boolean).join("  ")}`);
   }
   y -= 8;

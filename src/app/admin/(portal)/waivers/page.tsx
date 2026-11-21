@@ -7,13 +7,10 @@ import { requireAdminPage } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import { Booking, SignedWaiver } from "@/lib/models";
 import { audit } from "@/lib/security";
-import { formatDateTime, hoursAgo } from "@/lib/utils";
+import { formatDate, formatDateTime, hoursAgo } from "@/lib/utils";
+import { waiverSearchFilter } from "@/lib/admin/waiver-search";
 
 export const metadata: Metadata = { title: "Waivers" };
-
-function escapeRegex(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 
 export default async function WaiversPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string; tab?: string }> }) {
   const admin = await requireAdminPage();
@@ -24,12 +21,10 @@ export default async function WaiversPage({ searchParams }: { searchParams: Prom
   const limit = 30;
   await connectDB();
 
-  const filter = q
-    ? { $or: ["participantName", "email", "bookingNumber", "waiverNumber", "signerName"].map((f) => ({ [f]: { $regex: escapeRegex(q), $options: "i" } })) }
-    : {};
+  const filter = q ? waiverSearchFilter(q) : {};
   const [waivers, total, pending] = await Promise.all([
     tab === "signed"
-      ? SignedWaiver.find(filter).sort({ signedAt: -1 }).skip((page - 1) * limit).limit(limit).select("waiverNumber bookingNumber participantName email isMinor signerName signedAt templateVersion").lean()
+      ? SignedWaiver.find(filter).sort({ signedAt: -1 }).skip((page - 1) * limit).limit(limit).select("waiverNumber bookingNumber participantName email phone participantDob mailingList medicalNotes isMinor signerName signedAt templateVersion").lean()
       : [],
     tab === "signed" ? SignedWaiver.countDocuments(filter) : 0,
     tab === "pending"
@@ -40,6 +35,15 @@ export default async function WaiversPage({ searchParams }: { searchParams: Prom
           .lean()
       : [],
   ]);
+  // How many waivers each person (by email) has signed in total, to spot returning customers.
+  const emails = [...new Set(waivers.map((w) => w.email))];
+  const counts = emails.length
+    ? await SignedWaiver.aggregate<{ _id: string; n: number; first: Date }>([
+        { $match: { email: { $in: emails } } },
+        { $group: { _id: "$email", n: { $sum: 1 }, first: { $min: "$signedAt" } } },
+      ])
+    : [];
+  const history = new Map(counts.map((c) => [c._id, c]));
   if (q) await audit({ actor: admin.userId, actorEmail: admin.email, action: "waiver.search", entity: "SignedWaiver", details: { q } });
   const pages = Math.max(1, Math.ceil(total / limit));
 
@@ -64,17 +68,27 @@ export default async function WaiversPage({ searchParams }: { searchParams: Prom
             <input type="hidden" name="tab" value="signed" />
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-              <input name="q" defaultValue={q} className="field pl-9" placeholder="Search by participant, email, booking ID or waiver #" aria-label="Search waivers" />
+              <input name="q" defaultValue={q} className="field pl-9" placeholder="Search by name, phone, email, date of birth (YYYY-MM-DD), booking ID or waiver #" aria-label="Search waivers" />
             </div>
             <button className="btn btn-cyan btn-sm" type="submit">
               Search
             </button>
           </form>
+          <div className="mb-4 flex flex-wrap gap-2">
+            <a href={`/api/admin/waivers/export?q=${encodeURIComponent(q)}`} className="btn btn-ghost btn-sm">
+              <Download className="size-4" aria-hidden="true" /> Export {q ? "results" : "all"} (CSV)
+            </a>
+            <a href="/api/admin/waivers/export?mailing=1" className="btn btn-ghost btn-sm">
+              <Download className="size-4" aria-hidden="true" /> Mailing list opt-ins (CSV)
+            </a>
+          </div>
           <div className="overflow-x-auto rounded-xl border border-cyan/15">
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="bg-bg-2 text-xs uppercase text-muted">
                 <tr>
                   <th className="px-4 py-3">Participant</th>
+                  <th className="px-4 py-3">History</th>
+                  <th className="px-4 py-3">Medical / allergies</th>
                   <th className="px-4 py-3">Booking</th>
                   <th className="px-4 py-3">Signed by</th>
                   <th className="px-4 py-3">Signed at</th>
@@ -85,7 +99,7 @@ export default async function WaiversPage({ searchParams }: { searchParams: Prom
               <tbody className="divide-y divide-white/5">
                 {waivers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-muted">
+                    <td colSpan={8} className="px-4 py-10 text-center text-muted">
                       No signed waivers found.
                     </td>
                   </tr>
@@ -93,9 +107,25 @@ export default async function WaiversPage({ searchParams }: { searchParams: Prom
                   waivers.map((w) => (
                     <tr key={w.waiverNumber}>
                       <td className="px-4 py-3">
-                        {w.participantName}
+                        <span className="font-semibold">{w.participantName}</span>
                         <span className="block text-xs text-muted">{w.email}</span>
+                        <span className="block text-xs text-muted">
+                          {w.phone || "No phone"}
+                          {w.participantDob && ` · DOB ${w.participantDob}`}
+                          {w.mailingList && " · Mailing list"}
+                        </span>
                       </td>
+                      <td className="px-4 py-3 text-xs">
+                        {(history.get(w.email)?.n ?? 1) > 1 ? (
+                          <Link href={`?tab=signed&q=${encodeURIComponent(w.email)}`} className="rounded border border-cyan/50 px-2 py-0.5 text-cyan hover:bg-cyan/10">
+                            Returning · {history.get(w.email)!.n} waivers
+                          </Link>
+                        ) : (
+                          <span className="text-muted">First visit</span>
+                        )}
+                        {history.get(w.email)?.first && <span className="mt-1 block text-muted">Since {formatDate(history.get(w.email)!.first)}</span>}
+                      </td>
+                      <td className={`max-w-[200px] px-4 py-3 text-xs ${w.medicalNotes ? "text-red" : "text-muted"}`}>{w.medicalNotes || "None"}</td>
                       <td className="px-4 py-3">
                         {w.bookingNumber ? (
                           <Link href={`/admin/bookings?q=${w.bookingNumber}`} className="font-orbitron text-cyan hover:underline">

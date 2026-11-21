@@ -9,9 +9,9 @@ import {
   DEFAULT_PROMOTIONS,
   DEFAULT_SETTINGS,
   DEFAULT_WEEKLY_HOURS,
-  WAIVER_DRAFT_BODY,
 } from "@/lib/defaults";
 import { TAGS } from "@/lib/data";
+import { CLIENT_WAIVER_BODY, CLIENT_WAIVER_TITLE } from "@/lib/waiver-text";
 import { audit } from "@/lib/security";
 
 /**
@@ -48,8 +48,8 @@ export const POST = handle(async (req: Request) => {
     }
   }
   if ((await WaiverTemplate.estimatedDocumentCount()) === 0) {
-    await WaiverTemplate.create({ version: 1, title: "Participant Release, Waiver & Assumption of Risk", body: WAIVER_DRAFT_BODY, status: "draft" });
-    created.push("waiver draft placeholder");
+    await WaiverTemplate.create({ version: 1, title: CLIENT_WAIVER_TITLE, body: CLIENT_WAIVER_BODY, status: "draft" });
+    created.push("waiver draft (client wording, publish it in Waivers)");
   }
 
   Object.values(TAGS).forEach((t) => revalidateTag(t, { expire: 0 }));

@@ -3,7 +3,7 @@ import { handle, ok, parseJson } from "@/lib/api";
 import { requireAdminApi } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import { WaiverTemplate } from "@/lib/models";
-import { WAIVER_DRAFT_BODY } from "@/lib/defaults";
+import { CLIENT_WAIVER_BODY, CLIENT_WAIVER_TITLE } from "@/lib/waiver-text";
 import { audit } from "@/lib/security";
 
 export const GET = handle(async (req: Request) => {
@@ -19,10 +19,11 @@ export const POST = handle(async (req: Request) => {
   await parseJson(req, z.object({}).passthrough());
   await connectDB();
   const latest = await WaiverTemplate.findOne({}).sort({ version: -1 }).lean();
+  const isPlaceholder = !latest || /DRAFT WAIVER|NOT FOR PUBLICATION/i.test(latest.body);
   const draft = await WaiverTemplate.create({
     version: (latest?.version ?? 0) + 1,
-    title: latest?.title ?? "Participant Release, Waiver & Assumption of Risk",
-    body: latest?.body ?? WAIVER_DRAFT_BODY,
+    title: isPlaceholder ? CLIENT_WAIVER_TITLE : latest!.title,
+    body: isPlaceholder ? CLIENT_WAIVER_BODY : latest!.body,
     acknowledgments: latest?.acknowledgments ?? [],
     requireDob: latest?.requireDob ?? true,
     minorAgeThreshold: latest?.minorAgeThreshold ?? 18,

@@ -28,7 +28,7 @@ export const IMG = {
 export const DEFAULT_SETTINGS = {
   key: "main" as const,
   businessName: "XVR – Free-Roaming VR Arena",
-  phone: "+1 204-510-3188",
+  phone: "204-774-4303",
   email: "xtremetacticswpg@gmail.com",
   addressLine1: "551 Ferry Road, Unit 2",
   addressLine2: "",

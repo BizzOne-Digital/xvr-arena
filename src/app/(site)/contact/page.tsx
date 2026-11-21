@@ -10,7 +10,7 @@ import { hhmmToMinutes, minutesToLabel } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Contact Us",
-  description: "Contact XVR – 551 Ferry Road, Unit 2, Winnipeg, Manitoba. Rear entrance from St. Matthews Avenue. Call +1 204-510-3188.",
+  description: "Contact XVR – 551 Ferry Road, Unit 2, Winnipeg, Manitoba. Rear entrance from St. Matthews Avenue. Call 204-774-4303.",
   alternates: { canonical: "/contact" },
 };
 
