@@ -40,6 +40,7 @@ export interface IBooking {
   isBirthday: boolean;
   pricing: {
     unitPriceCents: number;
+    priceTbc?: boolean;
     unit: "person" | "session";
     subtotalCents: number;
     discountCents: number;
@@ -93,6 +94,7 @@ const BookingSchema = new S<IBooking>(
     isBirthday: { type: Boolean, default: false },
     pricing: {
       unitPriceCents: Number,
+      priceTbc: Boolean,
       unit: String,
       subtotalCents: Number,
       discountCents: Number,

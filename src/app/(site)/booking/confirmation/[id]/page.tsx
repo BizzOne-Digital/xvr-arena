@@ -7,7 +7,7 @@ import { getSettings } from "@/lib/data";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { isDbConfigured } from "@/lib/db";
 import { BOOKING_STATUS_LABELS, PAYMENT_STATUS_LABELS, WAIVER_STATUS_LABELS } from "@/lib/constants";
-import { formatCAD, formatDateTime, msUntil } from "@/lib/utils";
+import { formatDateTime, msUntil, totalLabel } from "@/lib/utils";
 import { CancelBooking, ResumePayment } from "@/components/booking/BookingActions";
 import { cn } from "@/lib/utils";
 
@@ -99,7 +99,7 @@ export default async function ConfirmationPage({ params, searchParams }: { param
     ["Date & time", `${formatDateTime(booking.startAt)} (Winnipeg time)`],
     ["Duration", `${booking.durationMin} minutes`],
     ["Players", String(booking.players)],
-    ["Total", formatCAD(booking.pricing?.totalCents)],
+    ["Total", totalLabel(booking.pricing)],
   ];
 
   return (

@@ -32,7 +32,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 function embedUrl(url: string) {
   const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/.exec(url);
-  return yt ? `https://www.youtube-nocookie.com/embed/${yt[1]}` : null;
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
+  if (url.startsWith("https://player.vimeo.com/video/")) return `${url}${url.includes("?") ? "&" : "?"}title=0&byline=0&portrait=0&dnt=1`;
+  return null;
 }
 
 export default async function GameDetail({ params }: { params: Promise<{ slug: string }> }) {
@@ -44,9 +46,9 @@ export default async function GameDetail({ params }: { params: Promise<{ slug: s
   const bookHref = `/booking?experience=${game.experience}&game=${game.slug}`;
 
   const stats = [
-    { icon: Clock, label: "Duration", value: game.durationMin ? `${game.durationMin} min` : "TBC" },
+    { icon: Clock, label: "Duration", value: game.durationLabel || (game.durationMin ? `${game.durationMin} min` : "Ask us") },
     { icon: Users, label: "Players", value: playersLabel(game) },
-    { icon: ShieldCheck, label: "Recommended age", value: game.recommendedAge || "TBC" },
+    { icon: ShieldCheck, label: "Recommended age", value: game.recommendedAge || "Ask us" },
     { icon: DollarSign, label: "Price", value: game.priceCents != null ? `${formatCAD(game.priceCents)} / player` : "See pricing" },
   ];
 

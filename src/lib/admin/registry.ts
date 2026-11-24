@@ -31,7 +31,7 @@ const uploadOrHttps = z
   .string()
   .trim()
   .max(500)
-  .refine((v) => v === "" || v.startsWith("/api/uploads/") || /^https:\/\//.test(v), "Must be an uploaded image or https URL");
+  .refine((v) => v === "" || v.startsWith("/api/uploads/") || v.startsWith("/images/") || /^https:\/\//.test(v), "Must be an uploaded image or https URL");
 
 const emptyToUndef = (v: unknown) => (v === "" || v === null ? undefined : v);
 

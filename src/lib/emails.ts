@@ -2,7 +2,7 @@ import "server-only";
 import { getSettings } from "./data";
 import { adminRecipients, queueEmail } from "./mailer";
 import type { IBooking } from "./models";
-import { formatCAD, formatDateTime, siteUrl } from "./utils";
+import { formatCAD, formatDateTime, siteUrl, totalLabel } from "./utils";
 import { BOOKING_STATUS_LABELS, PAYMENT_STATUS_LABELS, WAIVER_STATUS_LABELS } from "./constants";
 
 type BookingLike = IBooking & { _id: unknown };
@@ -44,7 +44,7 @@ ${b.gameName ? row("Game", b.gameName) : ""}
 ${row("Date & time", formatDateTime(b.startAt))}
 ${row("Duration", `${b.durationMin} minutes`)}
 ${row("Players", String(b.players))}
-${row("Total", formatCAD(b.pricing?.totalCents))}
+${row("Total", totalLabel(b.pricing))}
 ${row("Booking status", BOOKING_STATUS_LABELS[b.status] ?? b.status)}
 ${row("Payment status", PAYMENT_STATUS_LABELS[b.paymentStatus] ?? b.paymentStatus)}
 ${row("Waiver status", WAIVER_STATUS_LABELS[b.waiverStatus] ?? b.waiverStatus)}
@@ -57,7 +57,7 @@ function bookingText(b: BookingLike) {
     `Experience: ${b.experienceName}${b.gameName ? ` – ${b.gameName}` : ""}`,
     `Date & time: ${formatDateTime(b.startAt)}`,
     `Players: ${b.players}`,
-    `Total: ${formatCAD(b.pricing?.totalCents)}`,
+    `Total: ${totalLabel(b.pricing)}`,
     `Payment: ${PAYMENT_STATUS_LABELS[b.paymentStatus] ?? b.paymentStatus}`,
   ].join("\n");
 }
@@ -189,7 +189,7 @@ export function bookingAdminLines(b: BookingLike): [string, string][] {
     ["Experience", `${b.experienceName}${b.gameName ? ` – ${b.gameName}` : ""}`],
     ["When", formatDateTime(b.startAt)],
     ["Players", String(b.players)],
-    ["Total", formatCAD(b.pricing?.totalCents)],
+    ["Total", totalLabel(b.pricing)],
     ["Status", `${BOOKING_STATUS_LABELS[b.status]} / ${PAYMENT_STATUS_LABELS[b.paymentStatus]}`],
   ];
 }

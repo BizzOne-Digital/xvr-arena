@@ -69,6 +69,7 @@ export interface IGame {
   gallery: string[];
   videoUrl?: string;
   durationMin?: number;
+  durationLabel?: string;
   minPlayers?: number;
   maxPlayers?: number;
   recommendedAge?: string;
@@ -91,6 +92,7 @@ const GameSchema = new S<IGame>(
     gallery: { type: [String], default: [] },
     videoUrl: String,
     durationMin: Number,
+    durationLabel: String,
     minPlayers: Number,
     maxPlayers: Number,
     recommendedAge: String,

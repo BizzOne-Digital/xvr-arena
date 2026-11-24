@@ -2,7 +2,7 @@ import { revalidateTag } from "next/cache";
 import { handle, ok } from "@/lib/api";
 import { requireAdminApi } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
-import { AvailabilityRule, Experience, FAQ, Promotion, SiteSettings, WaiverTemplate } from "@/lib/models";
+import { AvailabilityRule, Experience, FAQ, Game, Promotion, SiteSettings, WaiverTemplate } from "@/lib/models";
 import {
   DEFAULT_EXPERIENCES,
   DEFAULT_FAQS,
@@ -10,6 +10,7 @@ import {
   DEFAULT_SETTINGS,
   DEFAULT_WEEKLY_HOURS,
 } from "@/lib/defaults";
+import { CATALOG_GAMES } from "@/lib/games-catalog";
 import { TAGS } from "@/lib/data";
 import { CLIENT_WAIVER_BODY, CLIENT_WAIVER_TITLE } from "@/lib/waiver-text";
 import { audit } from "@/lib/security";
@@ -40,6 +41,10 @@ export const POST = handle(async (req: Request) => {
   if ((await FAQ.estimatedDocumentCount()) === 0) {
     await FAQ.insertMany(DEFAULT_FAQS.map((f, i) => ({ ...f, sortOrder: i })));
     created.push(`${DEFAULT_FAQS.length} FAQs (policy answers saved as drafts)`);
+  }
+  if ((await Game.estimatedDocumentCount()) === 0) {
+    await Game.insertMany(CATALOG_GAMES);
+    created.push(`${CATALOG_GAMES.length} games`);
   }
   for (const p of DEFAULT_PROMOTIONS) {
     if (!(await Promotion.exists({ slug: p.slug }))) {

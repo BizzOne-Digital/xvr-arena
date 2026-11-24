@@ -47,6 +47,22 @@ export async function getOpeningWindow(date: string, resourceKey?: string) {
   return { open: hhmmToMinutes(day.openTime), close: hhmmToMinutes(day.closeTime) };
 }
 
+/** Open/closed status for many dates with a single query (used by the booking calendar). */
+export async function getOpenDates(dates: string[], resourceKey?: string) {
+  await connectDB();
+  const rules = await AvailabilityRule.find({}).lean();
+  const weekly = rules.find((r) => r.key === "weekly");
+  const hours = weekly?.hours?.length ? weekly.hours : DEFAULT_WEEKLY_HOURS;
+  return dates.map((date) => {
+    const closed = rules.some(
+      (r) => r.key === "closure" && r.date && r.date <= date && (r.endDate || r.date) >= date && (!r.resourceKey || r.resourceKey === resourceKey),
+    );
+    if (closed) return { date, open: false };
+    if (rules.some((r) => r.key === "override" && r.date === date && r.openTime && r.closeTime)) return { date, open: true };
+    return { date, open: Boolean(hours.find((h) => h.day === weekdayOf(date))?.open) };
+  });
+}
+
 export function slotKey(resourceKey: string, date: string, minutes: number) {
   return `${resourceKey}|${date}|${minutes}`;
 }

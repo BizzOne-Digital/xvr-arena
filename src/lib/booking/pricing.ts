@@ -1,12 +1,14 @@
 import "server-only";
 import { isValidObjectId } from "mongoose";
 import { connectDB } from "../db";
+import { CATALOG_GAMES } from "../games-catalog";
 import { Game, PricingPlan, Promotion, type IExperience, type IGame, type IPricingPlan, type IPromotion } from "../models";
 import { HttpError } from "../security";
 import type { BookingSettings } from "./availability";
 
 export type Quote = {
   unitPriceCents: number;
+  priceTbc: boolean;
   unit: "person" | "session";
   durationMin: number;
   minPlayers: number;
@@ -26,9 +28,10 @@ export type Quote = {
 
 export async function resolveOffering(exp: IExperience, gameSlug?: string, planId?: string) {
   await connectDB();
-  let game: (IGame & { _id: unknown }) | null = null;
+  let game: (Partial<IGame> & Pick<IGame, "slug" | "name" | "experience">) | null = null;
   if (gameSlug) {
     game = await Game.findOne({ slug: gameSlug, status: "published" }).lean();
+    if (!game && (await Game.estimatedDocumentCount()) === 0) game = CATALOG_GAMES.find((g) => g.slug === gameSlug) ?? null;
     if (!game) throw new HttpError(404, "This game is not available.");
     if (game.experience !== exp.slug) throw new HttpError(400, "This game is not played in the selected experience.");
   }
@@ -43,15 +46,15 @@ export async function resolveOffering(exp: IExperience, gameSlug?: string, planI
     plan = await PricingPlan.findOne({ experience: exp.slug, active: true, kind: "standard" }).sort({ sortOrder: 1 }).lean();
   }
 
-  const unitPriceCents = game?.priceCents ?? plan?.priceCents;
-  if (unitPriceCents == null) {
-    throw new HttpError(422, "Online pricing for this experience has not been published yet. Please contact us to book.");
-  }
+  // No published price yet: the booking is taken as a request and staff confirm the price.
+  const listed = game?.priceCents ?? plan?.priceCents;
+  const priceTbc = listed == null;
+  const unitPriceCents = listed ?? 0;
   const unit: "person" | "session" = game?.priceCents != null ? "person" : (plan?.unit ?? "person");
   const durationMin = game?.durationMin ?? plan?.durationMin ?? exp.defaultDurationMin;
   const minPlayers = Math.max(exp.minPlayers, game?.minPlayers ?? 1, plan?.minPlayers ?? 1);
   const maxPlayers = Math.min(exp.maxPlayers, game?.maxPlayers ?? Infinity, plan?.maxPlayers ?? Infinity);
-  return { game, plan, unitPriceCents, unit, durationMin, minPlayers, maxPlayers };
+  return { game, plan, unitPriceCents, priceTbc, unit, durationMin, minPlayers, maxPlayers };
 }
 
 function promoDiscount(p: IPromotion, ctx: { unitPriceCents: number; unit: string; players: number; subtotal: number; isBirthday: boolean }) {
@@ -129,12 +132,13 @@ export async function buildQuote(opts: {
   }
 
   const discount = Math.min(subtotal, applied.reduce((s, x) => s + x.amount, 0));
-  const fee = settings.bookingFeeCents || 0;
+  const fee = o.priceTbc ? 0 : settings.bookingFeeCents || 0;
   const taxable = subtotal - discount + fee;
   const tax = Math.round((taxable * (settings.taxRatePercent || 0)) / 100);
 
   return {
     unitPriceCents: o.unitPriceCents,
+    priceTbc: o.priceTbc,
     unit: o.unit,
     durationMin: o.durationMin,
     minPlayers: o.minPlayers,

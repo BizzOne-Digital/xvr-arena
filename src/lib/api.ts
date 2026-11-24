@@ -25,6 +25,10 @@ export function handle<A extends unknown[]>(fn: (...args: A) => Promise<Response
       if ((err as Error)?.message === "MONGODB_URI is not configured") {
         return fail(503, "The database is not configured yet. Set MONGODB_URI to enable this feature.");
       }
+      if (/Server ?Selection|MongoNetwork|Mongo.*Timeout/i.test((err as Error)?.name ?? "") || /MongoDB Atlas cluster/.test((err as Error)?.message ?? "")) {
+        console.error("[api] database unreachable", (err as Error).message);
+        return fail(503, "Online booking is temporarily unavailable. Please call us or try again shortly.");
+      }
       console.error("[api] unhandled", err);
       return fail(500, "Something went wrong. Please try again.");
     }

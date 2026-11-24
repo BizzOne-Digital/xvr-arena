@@ -117,3 +117,8 @@ export function msUntil(date: Date | string) {
 export function hoursAgo(hours: number) {
   return new Date(Date.now() - hours * 3_600_000);
 }
+
+/** Booking total, or a clear label when staff still need to confirm the price. */
+export function totalLabel(pricing?: { totalCents?: number; priceTbc?: boolean } | null) {
+  return pricing?.priceTbc ? "To be confirmed" : formatCAD(pricing?.totalCents);
+}

@@ -1,6 +1,7 @@
 export const GAME_CATEGORIES = [
   "Action",
   "Adventure",
+  "Escape Room",
   "Family",
   "Multiplayer",
   "Horror",

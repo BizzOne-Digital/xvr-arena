@@ -8,7 +8,7 @@ export function playersLabel(g: Pick<GameDTO, "minPlayers" | "maxPlayers">) {
   if (g.minPlayers && g.maxPlayers) return g.minPlayers === g.maxPlayers ? `${g.minPlayers}` : `${g.minPlayers}–${g.maxPlayers}`;
   if (g.maxPlayers) return `Up to ${g.maxPlayers}`;
   if (g.minPlayers) return `${g.minPlayers}+`;
-  return "TBC";
+  return "Ask us";
 }
 
 export function GameCard({ game }: { game: GameDTO }) {
@@ -50,7 +50,7 @@ export function GameCard({ game }: { game: GameDTO }) {
           <div className="rounded-lg border border-white/5 bg-bg/60 p-2">
             <Clock className="mx-auto mb-1 size-4 text-cyan" aria-hidden="true" />
             <dt className="sr-only">Duration</dt>
-            <dd>{game.durationMin ? `${game.durationMin} min` : "TBC"}</dd>
+            <dd>{game.durationLabel || (game.durationMin ? `${game.durationMin} min` : "Ask us")}</dd>
           </div>
           <div className="rounded-lg border border-white/5 bg-bg/60 p-2">
             <Users className="mx-auto mb-1 size-4 text-cyan" aria-hidden="true" />
@@ -60,7 +60,7 @@ export function GameCard({ game }: { game: GameDTO }) {
           <div className="rounded-lg border border-white/5 bg-bg/60 p-2">
             <ShieldCheck className="mx-auto mb-1 size-4 text-cyan" aria-hidden="true" />
             <dt className="sr-only">Recommended age</dt>
-            <dd>{game.recommendedAge || "TBC"}</dd>
+            <dd>{game.recommendedAge || "Ask us"}</dd>
           </div>
         </dl>
         <div className="mt-auto pt-5">

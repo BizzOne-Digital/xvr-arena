@@ -65,6 +65,7 @@ export type WizardPlan = {
 type Slot = { startMinutes: number; label: string; remaining: number; available: boolean };
 type Quote = {
   unitPriceCents: number;
+  priceTbc: boolean;
   unit: "person" | "session";
   durationMin: number;
   minPlayers: number;
@@ -297,7 +298,7 @@ export function BookingWizard({
   const detailsValid = customer.name.trim().length >= 2 && /\S+@\S+\.\S+/.test(customer.email) && customer.phone.replace(/\D/g, "").length >= 7;
   const waiverRequiredNow = waiverTiming === "before_payment" && waiver && waiver !== "none";
   const canContinue: Record<number, boolean> = {
-    0: !!exp && exp.bookable && hasPricing,
+    0: !!exp && exp.bookable,
     1: !!date,
     2: !!slot,
     3: players >= limits.min && players <= limits.max,
@@ -420,34 +421,20 @@ export function BookingWizard({
               </ul>
 
               {exp && expGames.length > 0 && (
-                <div>
-                  <h3 className="mb-3 font-display text-xl font-bold uppercase">Choose a game (optional)</h3>
-                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Game">
-                    {expPlans.length > 0 && (
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={gameSlug === ""}
-                        onClick={() => setGameSlug("")}
-                        className={cn("rounded-lg border px-4 py-2 text-sm font-semibold", gameSlug === "" ? "border-cyan bg-cyan/15 text-cyan" : "border-white/15 text-muted hover:text-ink")}
-                      >
-                        No preference
-                      </button>
-                    )}
+                <div className="max-w-xl">
+                  <label htmlFor="game-select" className="mb-3 block font-display text-xl font-bold uppercase">
+                    Choose a game (optional)
+                  </label>
+                  <select id="game-select" className="field" value={gameSlug} onChange={(e) => setGameSlug(e.target.value)}>
+                    <option value="">No preference / decide at the arena</option>
                     {expGames.map((g) => (
-                      <button
-                        key={g.slug}
-                        type="button"
-                        role="radio"
-                        aria-checked={gameSlug === g.slug}
-                        onClick={() => setGameSlug(g.slug)}
-                        className={cn("rounded-lg border px-4 py-2 text-sm font-semibold", gameSlug === g.slug ? "border-cyan bg-cyan/15 text-cyan" : "border-white/15 text-muted hover:text-ink")}
-                      >
+                      <option key={g.slug} value={g.slug}>
                         {g.name}
-                        {g.priceCents != null && <span className="ml-2 font-orbitron text-xs">{formatCAD(g.priceCents)}</span>}
-                      </button>
+                        {g.recommendedAge ? ` (${g.recommendedAge})` : ""}
+                        {g.priceCents != null ? ` - ${formatCAD(g.priceCents)}` : ""}
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 </div>
               )}
 
@@ -483,13 +470,7 @@ export function BookingWizard({
               )}
 
               {exp && !hasPricing && (
-                <FormAlert kind="info">
-                  Online pricing for {exp.name} hasn&apos;t been published yet. Please{" "}
-                  <a className="text-cyan underline" href="/contact">
-                    contact us
-                  </a>{" "}
-                  to book this experience.
-                </FormAlert>
+                <FormAlert kind="info">Our team will confirm the price with you before your visit. No payment is taken online for this booking.</FormAlert>
               )}
               {exp?.isPrivateEvent && (
                 <FormAlert kind="info">
@@ -664,6 +645,11 @@ export function BookingWizard({
               <div className="card-neon is-red h-fit p-6">
                 {loading && !quote ? (
                   <LoadingBlock />
+                ) : quote?.priceTbc ? (
+                  <div>
+                    <p className="font-display text-lg font-bold uppercase">Price to be confirmed</p>
+                    <p className="mt-2 text-sm text-muted">Our team will confirm the price when approving your booking. You pay at the venue.</p>
+                  </div>
                 ) : quote ? (
                   <dl className="space-y-2 text-sm">
                     <Row k={`Unit price (per ${quote.unit})`} v={formatCAD(quote.unitPriceCents)} />
@@ -723,11 +709,11 @@ export function BookingWizard({
             <div className="card-neon mx-auto max-w-lg p-8 text-center">
               {payOnline ? <CreditCard className="mx-auto size-12 text-cyan" aria-hidden="true" /> : <CalendarDays className="mx-auto size-12 text-cyan" aria-hidden="true" />}
               <p className="mt-4 text-muted">Amount due</p>
-              <p className="font-orbitron text-5xl text-glow-cyan text-cyan">{formatCAD(quote.totalCents)}</p>
+              <p className="font-orbitron text-3xl text-glow-cyan text-cyan sm:text-5xl">{quote.priceTbc ? "To be confirmed" : formatCAD(quote.totalCents)}</p>
               <p className="mt-4 text-sm text-muted">
-                {payOnline
+                {payOnline && !quote.priceTbc
                   ? "You'll be redirected to Stripe's secure checkout. Your booking is confirmed once payment is verified."
-                  : "Online payment isn't available yet. Submit your booking request and our team will confirm your session. Payment is collected at the venue."}
+                  : "Submit your booking request and our team will confirm your session. Payment is collected at the venue."}
               </p>
               <p className="mt-3 flex items-center justify-center gap-2 text-xs text-muted">
                 <ShieldCheck className="size-4 text-cyan" aria-hidden="true" /> Card details are never stored by XVR.
@@ -773,7 +759,7 @@ export function BookingWizard({
         {step === 7 && (
           <button type="button" className="btn btn-red" disabled={loading || (remainingMs != null && remainingMs <= 0)} onClick={checkout}>
             {loading ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : payOnline ? <CreditCard className="size-5" aria-hidden="true" /> : <Check className="size-5" aria-hidden="true" />}
-            {payOnline ? "Pay securely" : "Submit booking request"}
+            {payOnline && !quote?.priceTbc ? "Pay securely" : "Submit booking request"}
           </button>
         )}
       </div>

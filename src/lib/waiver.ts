@@ -9,9 +9,29 @@ import type { waiverSignSchema } from "./validation";
 import { refreshWaiverStatus } from "./booking/service";
 import { notifyAdmins, sendWaiverCompleted } from "./emails";
 import { formatDateTime, siteUrl } from "./utils";
+import { CLIENT_WAIVER_BODY, CLIENT_WAIVER_TITLE } from "./waiver-text";
 
 export async function getPublishedWaiver() {
   await connectDB();
+  const published = await WaiverTemplate.findOne({ status: "published" }).sort({ version: -1 }).lean();
+  if (published) return published;
+  // Never published before: put the wording supplied by the client live. Once any version has been
+  // published or archived, staff control it from Admin > Waivers.
+  if (await WaiverTemplate.exists({ status: "archived" })) return null;
+  const latest = await WaiverTemplate.findOne({}).sort({ version: -1 }).select("version").lean();
+  try {
+    await WaiverTemplate.create({
+      version: (latest?.version ?? 0) + 1,
+      title: CLIENT_WAIVER_TITLE,
+      body: CLIENT_WAIVER_BODY,
+      status: "published",
+      publishedAt: new Date(),
+      contentHash: sha256(CLIENT_WAIVER_BODY),
+      legalApprovalNote: "Wording supplied by the client for publication",
+    });
+  } catch (err) {
+    if ((err as { code?: number }).code !== 11000) throw err; // another request published it first
+  }
   return WaiverTemplate.findOne({ status: "published" }).sort({ version: -1 }).lean();
 }
 

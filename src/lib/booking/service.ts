@@ -1,7 +1,7 @@
 import "server-only";
 import crypto from "node:crypto";
 import { connectDB } from "../db";
-import { Booking, BookingHold, Payment, Promotion, WaiverTemplate, type IBooking } from "../models";
+import { Booking, BookingHold, Payment, Promotion, type IBooking } from "../models";
 import { HttpError, randomToken } from "../security";
 import type { HoldInput } from "../validation";
 import {
@@ -31,7 +31,8 @@ function newBookingNumber() {
 }
 
 async function waiverRequirement(players: number) {
-  const published = await WaiverTemplate.exists({ status: "published" });
+  const { getPublishedWaiver } = await import("../waiver");
+  const published = await getPublishedWaiver();
   return published
     ? { waiverStatus: "pending" as const, waiversRequired: players }
     : { waiverStatus: "unavailable" as const, waiversRequired: players };
@@ -107,6 +108,7 @@ export async function createHold(input: HoldInput) {
           isBirthday: !!input.isBirthday,
           pricing: {
             unitPriceCents: quote.unitPriceCents,
+            priceTbc: quote.priceTbc,
             unit: quote.unit,
             subtotalCents: quote.subtotalCents,
             discountCents: quote.discountCents,
@@ -162,7 +164,7 @@ export async function startCheckout(bookingNumber: string, token: string) {
   const payOnline = settings.onlinePaymentsEnabled && isStripeConfigured() && booking.pricing.totalCents > 0;
   if (!payOnline) {
     booking.status = "requested";
-    booking.paymentStatus = booking.pricing.totalCents > 0 ? "pay_at_venue" : "unpaid";
+    booking.paymentStatus = booking.pricing.totalCents > 0 || booking.pricing.priceTbc ? "pay_at_venue" : "unpaid";
     booking.holdExpiresAt = undefined;
     await booking.save();
     await BookingHold.updateOne({ booking: booking._id, status: "active" }, { $set: { status: "converted" } });

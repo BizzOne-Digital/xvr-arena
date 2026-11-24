@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/db";
 import { getResource, resourceSchema } from "@/lib/admin/registry";
 import { audit } from "@/lib/security";
 import { slugify } from "@/lib/utils";
+import { CATALOG_GAMES } from "@/lib/games-catalog";
 
 type Ctx = { params: Promise<{ resource: string }> };
 
@@ -50,6 +51,9 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
   }
   if (typeof data.code === "string") data.code = data.code.toUpperCase() || undefined;
   await connectDB();
+  if (resource === "games" && (await r.model.estimatedDocumentCount()) === 0) {
+    await r.model.insertMany(CATALOG_GAMES); // keep the starter catalog alongside the first game added by hand
+  }
   const doc = await r.model.create(data);
   r.tags.forEach((t) => revalidateTag(t, { expire: 0 }));
   await audit({ actor: admin.userId, actorEmail: admin.email, action: `${resource}.create`, entity: resource, entityId: String(doc._id) });

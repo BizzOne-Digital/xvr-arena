@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Download, Loader2, Search, X } from "lucide-react";
 import { useAdminApi } from "./AdminContext";
 import { BOOKING_STATUS_LABELS, PAYMENT_STATUS_LABELS, WAIVER_STATUS_LABELS } from "@/lib/constants";
-import { cn, formatCAD, formatDateTime } from "@/lib/utils";
+import { cn, formatCAD, formatDateTime, totalLabel } from "@/lib/utils";
 
 type Booking = {
   _id: string;
@@ -21,7 +21,7 @@ type Booking = {
   notes?: string;
   event?: { type?: string; occasion?: string; birthdayName?: string; company?: string };
   isBirthday: boolean;
-  pricing: { subtotalCents: number; discountCents: number; taxCents: number; feeCents: number; totalCents: number; promotions: { title: string; discountCents: number }[] };
+  pricing: { priceTbc?: boolean; subtotalCents: number; discountCents: number; taxCents: number; feeCents: number; totalCents: number; promotions: { title: string; discountCents: number }[] };
   status: string;
   paymentStatus: string;
   waiverStatus: string;
@@ -186,7 +186,7 @@ export function BookingsManager() {
                     <span className="block text-xs text-muted">{b.customer.phone}</span>
                   </td>
                   <td className="px-4 py-3">{b.players}</td>
-                  <td className="px-4 py-3 font-orbitron">{formatCAD(b.pricing.totalCents)}</td>
+                  <td className="px-4 py-3 font-orbitron">{totalLabel(b.pricing)}</td>
                   <td className="px-4 py-3">
                     <span className={cn("inline-block rounded border px-2 py-0.5 text-xs", STATUS_STYLE[b.status])}>{BOOKING_STATUS_LABELS[b.status]}</span>
                     <span className="mt-1 block text-xs text-muted">{PAYMENT_STATUS_LABELS[b.paymentStatus]}</span>
@@ -360,7 +360,7 @@ function BookingDetail({ id, onClose, onChanged }: { id: string; onClose: () => 
                 </p>
               )}
               <p className="mt-1 flex justify-between font-semibold">
-                <span>Total</span> <span className="font-orbitron">{formatCAD(b.pricing.totalCents)}</span>
+                <span>Total</span> <span className="font-orbitron">{totalLabel(b.pricing)}</span>
               </p>
             </div>
 

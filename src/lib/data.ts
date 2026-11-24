@@ -26,6 +26,7 @@ import {
   DEFAULT_WEEKLY_HOURS,
   type SettingsShape,
 } from "./defaults";
+import { CATALOG_GAMES } from "./games-catalog";
 import { toPlain } from "./utils";
 
 export const TAGS = {
@@ -96,6 +97,7 @@ export type GameDTO = {
   gallery: string[];
   videoUrl?: string;
   durationMin?: number;
+  durationLabel?: string;
   minPlayers?: number;
   maxPlayers?: number;
   recommendedAge?: string;
@@ -189,17 +191,20 @@ export async function getExperience(slug: string) {
 }
 
 /* ------------------------------------ Games ----------------------------------- */
+const STARTER_GAMES: GameDTO[] = CATALOG_GAMES.map((g) => ({ ...g, _id: g.slug, provider: undefined, providerUrl: undefined }));
+
 export const getPublishedGames = unstable_cache(
   async (): Promise<GameDTO[]> =>
     safe(
       async () =>
-        toPlain<GameDTO[]>(
-          await Game.find({ status: "published" }).sort({ sortOrder: 1, name: 1 }).select("-__v").lean(),
-        ),
-      [],
+        (await Game.estimatedDocumentCount()) === 0
+          ? STARTER_GAMES
+          : // Supplier details are for staff only and are never sent to the public site.
+            toPlain<GameDTO[]>(await Game.find({ status: "published" }).sort({ sortOrder: 1, name: 1 }).select("-__v -provider -providerUrl").lean()),
+      STARTER_GAMES,
       "games",
     ),
-  ["games-published"],
+  ["games-published-v2"],
   { tags: [TAGS.games], revalidate: REVALIDATE },
 );
 

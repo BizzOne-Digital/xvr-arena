@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { FileSignature } from "lucide-react";
 import { WaiverForm } from "@/components/waiver/WaiverForm";
 import { FormAlert } from "@/components/forms/Field";
 import { getPublishedWaiver } from "@/lib/waiver";
 import { isDbConfigured } from "@/lib/db";
+import { CLIENT_WAIVER_BODY, CLIENT_WAIVER_TITLE } from "@/lib/waiver-text";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -36,9 +36,10 @@ export default async function WaiverPage() {
             }}
           />
         ) : (
-          <div className="flex gap-4">
-            <FileSignature className="size-8 shrink-0 text-cyan" aria-hidden="true" />
-            <FormAlert kind="info">Our online waiver is being finalized. You will be able to sign on arrival in the meantime.</FormAlert>
+          <div className="space-y-5">
+            <FormAlert kind="info">Online signing is temporarily unavailable. You can read the waiver below and sign when you arrive.</FormAlert>
+            <h2 className="font-display text-xl font-bold uppercase">{CLIENT_WAIVER_TITLE}</h2>
+            <div className="whitespace-pre-line text-sm leading-relaxed text-ink/85">{CLIENT_WAIVER_BODY}</div>
           </div>
         )}
       </div>

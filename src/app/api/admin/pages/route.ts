@@ -28,7 +28,7 @@ export const PUT = handle(async (req: Request) => {
   const allowed = Object.keys(PAGE_DEFAULTS[key as keyof typeof PAGE_DEFAULTS]);
   const clean = Object.fromEntries(Object.entries(data).filter(([k]) => allowed.includes(k)));
   for (const [k, v] of Object.entries(clean)) {
-    if (/image$/i.test(k) && v && !v.startsWith("/api/uploads/") && !v.startsWith("https://")) return fail(400, "Images must be uploaded or https URLs.");
+    if (/image$/i.test(k) && v && !v.startsWith("/api/uploads/") && !v.startsWith("/images/") && !v.startsWith("https://")) return fail(400, "Images must be uploaded or https URLs.");
   }
   await connectDB();
   const before = await PageContent.findOne({ key }).lean();
